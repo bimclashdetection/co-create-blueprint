@@ -19,7 +19,8 @@ const Nomenclature = () => {
   const generatePreview = () => {
     const number = numberFormat === "001" ? "001" : "1";
     const dept = departmentCode ? "-ENG" : "";
-    return `${prefix}${separator}${number}${dept}`;
+    const sep = separator === "none" ? "" : separator;
+    return `${prefix}${sep}${number}${dept}`;
   };
 
   const handleSave = () => {
@@ -103,7 +104,7 @@ const Nomenclature = () => {
                     <SelectItem value="-">Hyphen (-)</SelectItem>
                     <SelectItem value="_">Underscore (_)</SelectItem>
                     <SelectItem value=".">Period (.)</SelectItem>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">

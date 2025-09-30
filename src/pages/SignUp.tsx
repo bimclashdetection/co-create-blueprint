@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const signUpSchema = z.object({
   fullName: z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters"),
@@ -27,6 +29,13 @@ type SignUpFormValues = z.infer<typeof signUpSchema>;
 const SignUp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signUp, user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -40,23 +49,33 @@ const SignUp = () => {
 
   const onSubmit = async (data: SignUpFormValues) => {
     try {
-      // TODO: Implement actual authentication
-      console.log("Sign up attempt:", { 
-        email: data.email, 
-        name: data.fullName, 
-        role: data.role 
-      });
+      const { error } = await signUp(data.email, data.password, data.fullName, data.role);
       
-      toast({
-        title: "Account created successfully",
-        description: "Welcome to Task Tracker!",
-      });
-      
-      navigate("/dashboard");
+      if (error) {
+        if (error.message.includes("already registered")) {
+          toast({
+            title: "Account already exists",
+            description: "This email is already registered. Please sign in instead.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Sign up failed",
+            description: error.message || "An error occurred. Please try again.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Account created successfully",
+          description: "Please check your email to verify your account.",
+        });
+        navigate("/dashboard");
+      }
     } catch (error) {
       toast({
         title: "Sign up failed",
-        description: "An error occurred. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     }
