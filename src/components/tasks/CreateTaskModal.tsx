@@ -17,12 +17,18 @@ import { useToast } from "@/hooks/use-toast";
 const taskSchema = z.object({
   title: z.string().trim().min(3, "Title must be at least 3 characters").max(200, "Title must be less than 200 characters"),
   description: z.string().trim().max(2000, "Description must be less than 2000 characters").optional(),
+  department: z.string().min(1, "Please select a department"),
+  website: z.string().min(1, "Please select a website/project"),
   assignee: z.string().min(1, "Please select an assignee"),
   priority: z.enum(["critical", "high", "medium", "low"]),
-  status: z.enum(["not-started", "in-progress", "completed", "on-hold"]),
+  status: z.enum(["assigned", "in-progress", "pending-review", "pending-approval", "completed", "on-hold"]),
   dueDate: z.date({
     required_error: "Please select a due date",
   }),
+  reviewedBy: z.string().optional(),
+  approvedBy: z.string().optional(),
+  remarks: z.string().trim().max(500, "Remarks must be less than 500 characters").optional(),
+  tlNotes: z.string().trim().max(500, "TL Notes must be less than 500 characters").optional(),
   tags: z.string().optional(),
 });
 
@@ -43,9 +49,15 @@ export const CreateTaskModal = ({ open, onOpenChange, taskToEdit }: CreateTaskMo
     defaultValues: taskToEdit || {
       title: "",
       description: "",
+      department: "",
+      website: "",
       assignee: "",
       priority: "medium",
-      status: "not-started",
+      status: "assigned",
+      reviewedBy: "",
+      approvedBy: "",
+      remarks: "",
+      tlNotes: "",
       tags: "",
     },
   });
@@ -113,6 +125,58 @@ export const CreateTaskModal = ({ open, onOpenChange, taskToEdit }: CreateTaskMo
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
+                name="department"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="webdev">Web Development (WD)</SelectItem>
+                        <SelectItem value="seo">SEO</SelectItem>
+                        <SelectItem value="smc">Social Media & Content (SMC)</SelectItem>
+                        <SelectItem value="design">Design</SelectItem>
+                        <SelectItem value="marketing">Marketing</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="website"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website/Project</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select project" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="tmd">TMD</SelectItem>
+                        <SelectItem value="rbs">RBS</SelectItem>
+                        <SelectItem value="tos">TOS</SelectItem>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
                 name="assignee"
                 render={({ field }) => (
                   <FormItem>
@@ -174,8 +238,10 @@ export const CreateTaskModal = ({ open, onOpenChange, taskToEdit }: CreateTaskMo
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="not-started">Not Started</SelectItem>
+                        <SelectItem value="assigned">Assigned</SelectItem>
                         <SelectItem value="in-progress">In Progress</SelectItem>
+                        <SelectItem value="pending-review">Pending Review</SelectItem>
+                        <SelectItem value="pending-approval">Pending Final Approval</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
                         <SelectItem value="on-hold">On Hold</SelectItem>
                       </SelectContent>
@@ -226,6 +292,82 @@ export const CreateTaskModal = ({ open, onOpenChange, taskToEdit }: CreateTaskMo
                 )}
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="reviewedBy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reviewed By</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select reviewer" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="ashutosh">Ashutosh</SelectItem>
+                        <SelectItem value="john-doe">John Doe</SelectItem>
+                        <SelectItem value="jane-smith">Jane Smith</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="approvedBy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Approved By</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select approver" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="ashutosh">Ashutosh</SelectItem>
+                        <SelectItem value="john-doe">John Doe</SelectItem>
+                        <SelectItem value="jane-smith">Jane Smith</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="remarks"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Remarks (Blocker, Extra Research, etc)</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Enter any remarks or blockers" rows={2} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="tlNotes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>TL Notes/Feedback</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Team lead notes or feedback" rows={2} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

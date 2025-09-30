@@ -26,7 +26,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
           <div className="h-8 w-8 bg-primary rounded-md flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-sm">TT</span>
           </div>
-          <span className="font-semibold text-lg hidden sm:block">Task Trakker</span>
+          <span className="font-semibold text-lg hidden sm:block">Task Tracker</span>
         </div>
       </div>
 

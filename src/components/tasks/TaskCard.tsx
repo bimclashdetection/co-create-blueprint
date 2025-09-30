@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { TaskStatusBadge } from "./TaskStatusBadge";
 import { PriorityIndicator } from "./PriorityIndicator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -6,12 +7,14 @@ import { Calendar, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 
-type TaskStatus = "not-started" | "in-progress" | "completed" | "on-hold";
+type TaskStatus = "assigned" | "in-progress" | "pending-review" | "pending-approval" | "completed" | "on-hold";
 type Priority = "critical" | "high" | "medium" | "low";
 
 interface TaskCardProps {
   id: string;
   title: string;
+  department?: string;
+  website?: string;
   assignee: {
     name: string;
     initials: string;
@@ -26,6 +29,8 @@ interface TaskCardProps {
 export const TaskCard = ({
   id,
   title,
+  department,
+  website,
   assignee,
   status,
   priority,
@@ -40,8 +45,18 @@ export const TaskCard = ({
           <div className="flex flex-col gap-3">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span className="text-xs font-mono text-muted-foreground">{id}</span>
+                  {department && (
+                    <Badge variant="outline" className="text-xs">
+                      {department}
+                    </Badge>
+                  )}
+                  {website && (
+                    <Badge variant="outline" className="text-xs bg-muted">
+                      {website}
+                    </Badge>
+                  )}
                   <PriorityIndicator priority={priority} />
                 </div>
                 <h4 className="font-medium line-clamp-2">{title}</h4>

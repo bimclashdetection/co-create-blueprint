@@ -37,7 +37,7 @@ const Login = () => {
       
       toast({
         title: "Login successful",
-        description: "Welcome back to Task Trakker!",
+        description: "Welcome back to Task Tracker!",
       });
       
       navigate("/dashboard");

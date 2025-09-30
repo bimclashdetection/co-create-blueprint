@@ -48,7 +48,7 @@ const Tasks = () => {
       id: "TT-004",
       title: "API documentation",
       assignee: { name: "Sarah Wilson", initials: "SW" },
-      status: "not-started" as const,
+      status: "assigned" as const,
       priority: "low" as const,
       dueDate: "2025-10-15",
     },
@@ -64,7 +64,7 @@ const Tasks = () => {
       id: "TT-006",
       title: "Design new landing page",
       assignee: { name: "Jane Smith", initials: "JS" },
-      status: "not-started" as const,
+      status: "assigned" as const,
       priority: "medium" as const,
       dueDate: "2025-10-12",
     },
@@ -129,8 +129,10 @@ const Tasks = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="not-started">Not Started</SelectItem>
+                <SelectItem value="assigned">Assigned</SelectItem>
                 <SelectItem value="in-progress">In Progress</SelectItem>
+                <SelectItem value="pending-review">Pending Review</SelectItem>
+                <SelectItem value="pending-approval">Pending Final Approval</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="on-hold">On Hold</SelectItem>
               </SelectContent>

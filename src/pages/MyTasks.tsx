@@ -30,7 +30,7 @@ const MyTasks = () => {
       id: "TT-008",
       title: "Code review for PR #234",
       assignee: { name: "John Doe", initials: "JD" },
-      status: "not-started" as const,
+      status: "assigned" as const,
       priority: "medium" as const,
       dueDate: "Oct 10",
       commentCount: 1,
@@ -47,7 +47,7 @@ const MyTasks = () => {
   ];
 
   const inProgressTasks = myTasks.filter((t) => t.status === "in-progress");
-  const notStartedTasks = myTasks.filter((t) => t.status === "not-started");
+  const notStartedTasks = myTasks.filter((t) => t.status === "assigned");
   const completedTasks = myTasks.filter((t) => t.status === "completed");
   const overdueTasks = myTasks.filter((t) => t.status !== "completed" && new Date(t.dueDate) < new Date());
 
@@ -116,7 +116,7 @@ const MyTasks = () => {
           <TabsList>
             <TabsTrigger value="all">All ({myTasks.length})</TabsTrigger>
             <TabsTrigger value="in-progress">In Progress ({inProgressTasks.length})</TabsTrigger>
-            <TabsTrigger value="not-started">Not Started ({notStartedTasks.length})</TabsTrigger>
+            <TabsTrigger value="assigned">Assigned ({notStartedTasks.length})</TabsTrigger>
             <TabsTrigger value="completed">Completed ({completedTasks.length})</TabsTrigger>
           </TabsList>
 
@@ -136,7 +136,7 @@ const MyTasks = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="not-started" className="space-y-4">
+          <TabsContent value="assigned" className="space-y-4">
             {notStartedTasks.length > 0 ? (
               notStartedTasks.map((task) => <TaskCard key={task.id} {...task} />)
             ) : (

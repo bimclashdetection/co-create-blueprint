@@ -49,7 +49,7 @@ const SignUp = () => {
       
       toast({
         title: "Account created successfully",
-        description: "Welcome to Task Trakker!",
+        description: "Welcome to Task Tracker!",
       });
       
       navigate("/dashboard");
