@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   isOpen: boolean;
+  onClose: () => void;
 }
 
 const menuItems = [
@@ -24,20 +25,23 @@ const menuItems = [
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
-export const Sidebar = ({ isOpen }: SidebarProps) => {
+export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const location = useLocation();
 
   return (
     <>
       {/* Mobile overlay */}
       {isOpen && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden" />
+        <div 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden" 
+          onClick={onClose}
+        />
       )}
 
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-card border-r transition-transform duration-300 z-50 lg:translate-x-0",
+          "fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-card border-r transition-transform duration-300 z-50 lg:translate-x-0 overflow-y-auto",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -50,6 +54,7 @@ export const Sidebar = ({ isOpen }: SidebarProps) => {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={() => onClose()}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
                   isActive
