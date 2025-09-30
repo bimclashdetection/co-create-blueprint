@@ -10,6 +10,7 @@ import Tasks from "./pages/Tasks";
 import TaskDetail from "./pages/TaskDetail";
 import MyTasks from "./pages/MyTasks";
 import Team from "./pages/Team";
+import MemberProfile from "./pages/MemberProfile";
 import Activity from "./pages/Activity";
 import Nomenclature from "./pages/Nomenclature";
 import Settings from "./pages/Settings";
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/tasks/:taskId" element={<TaskDetail />} />
           <Route path="/my-tasks" element={<MyTasks />} />
           <Route path="/team" element={<Team />} />
+          <Route path="/team/:userId" element={<MemberProfile />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/nomenclature" element={<Nomenclature />} />
           <Route path="/settings" element={<Settings />} />
