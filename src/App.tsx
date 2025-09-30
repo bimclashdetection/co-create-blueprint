@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
+import TaskDetail from "./pages/TaskDetail";
 import MyTasks from "./pages/MyTasks";
 import Team from "./pages/Team";
 import Activity from "./pages/Activity";
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/signup" element={<SignUp />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/tasks" element={<Tasks />} />
+          <Route path="/tasks/:taskId" element={<TaskDetail />} />
           <Route path="/my-tasks" element={<MyTasks />} />
           <Route path="/team" element={<Team />} />
           <Route path="/activity" element={<Activity />} />
