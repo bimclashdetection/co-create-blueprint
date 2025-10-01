@@ -16,7 +16,7 @@ const signUpSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters").max(100, "Password must be less than 100 characters"),
   confirmPassword: z.string(),
-  role: z.enum(["manager", "team-member"], {
+  role: z.enum(["manager", "team_member"], {
     required_error: "Please select a role",
   }),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -164,7 +164,7 @@ const SignUp = () => {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="team-member">Team Member</SelectItem>
+                        <SelectItem value="team_member">Team Member</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

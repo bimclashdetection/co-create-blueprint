@@ -40,18 +40,25 @@ export const AddMemberModal = ({ open, onOpenChange }: AddMemberModalProps) => {
 
   const onSubmit = async (data: MemberFormValues) => {
     try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: data.email,
-        password: data.password,
-        email_confirm: true,
-        user_metadata: {
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      // Call edge function to create user
+      const { data: result, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: data.email,
+          password: data.password,
           full_name: data.full_name,
           role: data.role,
         },
       });
 
-      if (authError) throw authError;
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
 
       toast({
         title: "Member added",
@@ -62,6 +69,7 @@ export const AddMemberModal = ({ open, onOpenChange }: AddMemberModalProps) => {
       onOpenChange(false);
       form.reset();
     } catch (error: any) {
+      console.error('Error adding member:', error);
       toast({
         title: "Error adding member",
         description: error.message || "An error occurred. Please try again.",
