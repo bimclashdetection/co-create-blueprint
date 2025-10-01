@@ -137,8 +137,8 @@ const MyTasks = () => {
         <Tabs defaultValue="all" className="space-y-4">
           <TabsList>
             <TabsTrigger value="all">All ({myTasks.length})</TabsTrigger>
-            <TabsTrigger value="in-progress">In Progress ({inProgressTasks.length})</TabsTrigger>
-            <TabsTrigger value="assigned">Assigned ({notStartedTasks.length})</TabsTrigger>
+            <TabsTrigger value="in_progress">In Progress ({inProgressTasks.length})</TabsTrigger>
+            <TabsTrigger value="not_started">Not Started ({notStartedTasks.length})</TabsTrigger>
             <TabsTrigger value="completed">Completed ({completedTasks.length})</TabsTrigger>
           </TabsList>
 
@@ -166,7 +166,7 @@ const MyTasks = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="in-progress" className="space-y-4">
+          <TabsContent value="in_progress" className="space-y-4">
             {inProgressTasks.length > 0 ? (
               inProgressTasks.map((task) => (
                 <TaskCard 
@@ -190,7 +190,7 @@ const MyTasks = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="assigned" className="space-y-4">
+          <TabsContent value="not_started" className="space-y-4">
             {notStartedTasks.length > 0 ? (
               notStartedTasks.map((task) => (
                 <TaskCard 

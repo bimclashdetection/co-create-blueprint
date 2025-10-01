@@ -7,7 +7,7 @@ import { Calendar, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 
-type TaskStatus = "assigned" | "in-progress" | "pending-review" | "pending-approval" | "completed" | "on-hold";
+type TaskStatus = "not_started" | "in_progress" | "completed" | "on_hold";
 type Priority = "critical" | "high" | "medium" | "low";
 
 interface TaskCardProps {
