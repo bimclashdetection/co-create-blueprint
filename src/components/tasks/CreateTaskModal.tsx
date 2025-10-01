@@ -12,23 +12,19 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import { useCreateTask, useUpdateTask, Task } from "@/hooks/useTasks";
+import { useProfiles } from "@/hooks/useProfiles";
+import { useEffect } from "react";
 
 const taskSchema = z.object({
   title: z.string().trim().min(3, "Title must be at least 3 characters").max(200, "Title must be less than 200 characters"),
   description: z.string().trim().max(2000, "Description must be less than 2000 characters").optional(),
-  department: z.string().min(1, "Please select a department"),
-  website: z.string().min(1, "Please select a website/project"),
-  assignee: z.string().min(1, "Please select an assignee"),
-  priority: z.enum(["critical", "high", "medium", "low"]),
-  status: z.enum(["assigned", "in-progress", "pending-review", "pending-approval", "completed", "on-hold"]),
-  dueDate: z.date({
+  assignee_id: z.string().min(1, "Please select an assignee"),
+  priority: z.enum(["low", "medium", "high", "critical"]),
+  status: z.enum(["not_started", "in_progress", "completed", "on_hold"]),
+  due_date: z.date({
     required_error: "Please select a due date",
   }),
-  reviewedBy: z.string().optional(),
-  approvedBy: z.string().optional(),
-  remarks: z.string().trim().max(500, "Remarks must be less than 500 characters").optional(),
-  tlNotes: z.string().trim().max(500, "TL Notes must be less than 500 characters").optional(),
   tags: z.string().optional(),
 });
 
@@ -37,48 +33,87 @@ type TaskFormValues = z.infer<typeof taskSchema>;
 interface CreateTaskModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  taskToEdit?: TaskFormValues & { id: string };
+  taskToEdit?: Task;
 }
 
 export const CreateTaskModal = ({ open, onOpenChange, taskToEdit }: CreateTaskModalProps) => {
-  const { toast } = useToast();
   const isEditing = !!taskToEdit;
+  const createTask = useCreateTask();
+  const updateTask = useUpdateTask();
+  const { data: profiles, isLoading: profilesLoading } = useProfiles();
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
-    defaultValues: taskToEdit || {
+    defaultValues: {
       title: "",
       description: "",
-      department: "",
-      website: "",
-      assignee: "",
+      assignee_id: "",
       priority: "medium",
-      status: "assigned",
-      reviewedBy: "",
-      approvedBy: "",
-      remarks: "",
-      tlNotes: "",
+      status: "not_started",
+      due_date: new Date(),
       tags: "",
     },
   });
 
-  const onSubmit = async (data: TaskFormValues) => {
-    try {
-      // TODO: Implement actual task creation/update
-      console.log(isEditing ? "Update task:" : "Create task:", data);
-      
-      toast({
-        title: isEditing ? "Task updated" : "Task created",
-        description: isEditing ? "Task has been updated successfully" : "New task has been created successfully",
+  useEffect(() => {
+    if (taskToEdit) {
+      form.reset({
+        title: taskToEdit.title,
+        description: taskToEdit.description || "",
+        assignee_id: taskToEdit.assignee_id || "",
+        priority: taskToEdit.priority,
+        status: taskToEdit.status,
+        due_date: taskToEdit.due_date ? new Date(taskToEdit.due_date) : new Date(),
+        tags: taskToEdit.tags?.join(", ") || "",
       });
-      
-      onOpenChange(false);
-      form.reset();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "An error occurred. Please try again.",
-        variant: "destructive",
+    } else {
+      form.reset({
+        title: "",
+        description: "",
+        assignee_id: "",
+        priority: "medium",
+        status: "not_started",
+        due_date: new Date(),
+        tags: "",
+      });
+    }
+  }, [taskToEdit, form]);
+
+  const onSubmit = async (data: TaskFormValues) => {
+    const tagsArray = data.tags ? data.tags.split(",").map(tag => tag.trim()).filter(Boolean) : undefined;
+    
+    if (isEditing && taskToEdit) {
+      updateTask.mutate({
+        id: taskToEdit.id,
+        updates: {
+          title: data.title,
+          description: data.description,
+          assignee_id: data.assignee_id,
+          priority: data.priority,
+          status: data.status,
+          due_date: data.due_date.toISOString(),
+          tags: tagsArray,
+          completed_at: data.status === 'completed' ? new Date().toISOString() : null,
+        },
+      }, {
+        onSuccess: () => {
+          onOpenChange(false);
+          form.reset();
+        },
+      });
+    } else {
+      createTask.mutate({
+        title: data.title,
+        description: data.description,
+        assignee_id: data.assignee_id,
+        priority: data.priority,
+        due_date: data.due_date.toISOString(),
+        tags: tagsArray,
+      }, {
+        onSuccess: () => {
+          onOpenChange(false);
+          form.reset();
+        },
       });
     }
   };
@@ -125,73 +160,28 @@ export const CreateTaskModal = ({ open, onOpenChange, taskToEdit }: CreateTaskMo
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="department"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select department" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="webdev">Web Development (WD)</SelectItem>
-                        <SelectItem value="seo">SEO</SelectItem>
-                        <SelectItem value="smc">Social Media & Content (SMC)</SelectItem>
-                        <SelectItem value="design">Design</SelectItem>
-                        <SelectItem value="marketing">Marketing</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="website"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Website/Project</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select project" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="tmd">TMD</SelectItem>
-                        <SelectItem value="rbs">RBS</SelectItem>
-                        <SelectItem value="tos">TOS</SelectItem>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="assignee"
+                name="assignee_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Assignee</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select assignee" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="john-doe">John Doe</SelectItem>
-                        <SelectItem value="jane-smith">Jane Smith</SelectItem>
-                        <SelectItem value="mike-johnson">Mike Johnson</SelectItem>
-                        <SelectItem value="sarah-wilson">Sarah Wilson</SelectItem>
+                        {profilesLoading ? (
+                          <SelectItem value="loading" disabled>Loading...</SelectItem>
+                        ) : profiles && profiles.length > 0 ? (
+                          profiles.map((profile) => (
+                            <SelectItem key={profile.id} value={profile.id}>
+                              {profile.full_name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>No team members found</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -205,17 +195,17 @@ export const CreateTaskModal = ({ open, onOpenChange, taskToEdit }: CreateTaskMo
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Priority</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select priority" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="critical">Critical</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
                         <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="critical">Critical</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -224,146 +214,68 @@ export const CreateTaskModal = ({ open, onOpenChange, taskToEdit }: CreateTaskMo
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {isEditing && (
               <FormField
                 control={form.control}
                 name="status"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="assigned">Assigned</SelectItem>
-                        <SelectItem value="in-progress">In Progress</SelectItem>
-                        <SelectItem value="pending-review">Pending Review</SelectItem>
-                        <SelectItem value="pending-approval">Pending Final Approval</SelectItem>
+                        <SelectItem value="not_started">Not Started</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="on-hold">On Hold</SelectItem>
+                        <SelectItem value="on_hold">On Hold</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="dueDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="mb-2">Due Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="reviewedBy"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reviewed By</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select reviewer" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="ashutosh">Ashutosh</SelectItem>
-                        <SelectItem value="john-doe">John Doe</SelectItem>
-                        <SelectItem value="jane-smith">Jane Smith</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="approvedBy"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Approved By</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select approver" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="ashutosh">Ashutosh</SelectItem>
-                        <SelectItem value="john-doe">John Doe</SelectItem>
-                        <SelectItem value="jane-smith">Jane Smith</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            )}
 
             <FormField
               control={form.control}
-              name="remarks"
+              name="due_date"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Remarks (Blocker, Extra Research, etc)</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Enter any remarks or blockers" rows={2} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="tlNotes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>TL Notes/Feedback</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Team lead notes or feedback" rows={2} {...field} />
-                  </FormControl>
+                <FormItem className="flex flex-col">
+                  <FormLabel>Due Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -387,8 +299,8 @@ export const CreateTaskModal = ({ open, onOpenChange, taskToEdit }: CreateTaskMo
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : isEditing ? "Update Task" : "Create Task"}
+              <Button type="submit" disabled={createTask.isPending || updateTask.isPending}>
+                {createTask.isPending || updateTask.isPending ? "Saving..." : isEditing ? "Update Task" : "Create Task"}
               </Button>
             </DialogFooter>
           </form>
