@@ -16,17 +16,26 @@ export const useProfiles = () => {
   return useQuery({
     queryKey: ['profiles'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch profiles
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          user_roles(role)
-        `)
+        .select('*')
         .order('full_name');
 
-      if (error) throw error;
-      
-      return data.map((profile: any) => ({
+      if (profilesError) throw profilesError;
+
+      // Fetch all user roles
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      if (rolesError) throw rolesError;
+
+      // Create a map of user_id to role
+      const roleMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
+
+      // Combine profiles with their roles
+      return profiles.map((profile: any) => ({
         id: profile.id,
         full_name: profile.full_name,
         email: profile.email,
@@ -34,7 +43,7 @@ export const useProfiles = () => {
         timezone: profile.timezone,
         created_at: profile.created_at,
         updated_at: profile.updated_at,
-        role: profile.user_roles?.[0]?.role || 'team_member',
+        role: roleMap.get(profile.id) || 'team_member',
       })) as Profile[];
     },
   });
@@ -44,18 +53,24 @@ export const useProfile = (userId: string) => {
   return useQuery({
     queryKey: ['profile', userId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch profile
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          user_roles(role)
-        `)
+        .select('*')
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
-      
-      const profile: any = data;
+      if (profileError) throw profileError;
+
+      // Fetch user role
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (roleError) throw roleError;
+
       return {
         id: profile.id,
         full_name: profile.full_name,
@@ -64,7 +79,7 @@ export const useProfile = (userId: string) => {
         timezone: profile.timezone,
         created_at: profile.created_at,
         updated_at: profile.updated_at,
-        role: profile.user_roles?.[0]?.role || 'team_member',
+        role: roleData?.role || 'team_member',
       } as Profile;
     },
     enabled: !!userId,
