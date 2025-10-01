@@ -1,5 +1,5 @@
 import { Layout } from "@/components/Layout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,9 +10,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, Bell, Lock, Palette, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/contexts/ThemeContext";
+import { requestNotificationPermission } from "@/hooks/useNotifications";
 
 const Settings = () => {
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   const [profileData, setProfileData] = useState({
     fullName: "John Doe",
     email: "john.doe@company.com",
@@ -30,7 +33,11 @@ const Settings = () => {
     comments: true,
   });
 
-  const [theme, setTheme] = useState("light");
+  useEffect(() => {
+    if (notifications.pushNotifications) {
+      requestNotificationPermission();
+    }
+  }, [notifications.pushNotifications]);
 
   const handleSaveProfile = () => {
     toast({
@@ -341,7 +348,7 @@ const Settings = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="theme">Theme</Label>
-                  <Select value={theme} onValueChange={setTheme}>
+                  <Select value={theme} onValueChange={(value: any) => setTheme(value)}>
                     <SelectTrigger id="theme">
                       <SelectValue />
                     </SelectTrigger>
@@ -352,14 +359,9 @@ const Settings = () => {
                     </SelectContent>
                   </Select>
                   <p className="text-sm text-muted-foreground">
-                    Select the theme for the application
+                    Select the theme for the application. Changes are applied immediately.
                   </p>
                 </div>
-
-                <Button>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Appearance
-                </Button>
               </CardContent>
             </Card>
           </TabsContent>

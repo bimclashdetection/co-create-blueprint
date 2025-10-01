@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Search, Download, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
+import { useActivityLogs } from "@/hooks/useActivityLogs";
+import { useExport } from "@/hooks/useExport";
 
 const mockActivities = [
   {
@@ -78,24 +80,33 @@ const actionColors = {
 const Activity = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
+  
+  const { data: activityLogs, isLoading } = useActivityLogs(100);
+  const { exportActivityLogsToCSV } = useExport();
 
-  const filteredActivities = mockActivities.filter((activity) => {
+  const filteredActivities = (activityLogs || []).filter((log: any) => {
     const matchesSearch =
-      activity.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      activity.targetName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      activity.details.toLowerCase().includes(searchQuery.toLowerCase());
+      log.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.action_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.task?.task_id?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesAction = actionFilter === "all" || activity.action === actionFilter;
+    const matchesAction = actionFilter === "all" || log.action_type === actionFilter;
 
     return matchesSearch && matchesAction;
   });
+
+  const handleExport = () => {
+    if (activityLogs) {
+      exportActivityLogsToCSV(activityLogs);
+    }
+  };
 
   return (
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Activity Log</h1>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
@@ -118,59 +129,65 @@ const Activity = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Actions</SelectItem>
-              <SelectItem value="created">Created</SelectItem>
-              <SelectItem value="updated">Updated</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="commented">Commented</SelectItem>
-              <SelectItem value="assigned">Assigned</SelectItem>
+              <SelectItem value="task_created">Task Created</SelectItem>
+              <SelectItem value="task_status_changed">Status Changed</SelectItem>
+              <SelectItem value="task_assigned">Task Assigned</SelectItem>
+              <SelectItem value="task_deleted">Task Deleted</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-4">
-          {filteredActivities.map((activity) => (
-            <Card key={activity.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback>
-                        {activity.user
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="w-px h-full bg-border mt-2" />
-                  </div>
+          {isLoading ? (
+            <p className="text-center py-8 text-muted-foreground">Loading activity...</p>
+          ) : filteredActivities.length > 0 ? (
+            filteredActivities.map((log: any) => (
+              <Card key={log.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback>
+                          {log.user?.full_name
+                            ?.split(" ")
+                            .map((n: string) => n[0])
+                            .join("") || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="w-px h-full bg-border mt-2" />
+                    </div>
 
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold">{activity.user}</span>
-                          <Badge
-                            variant="outline"
-                            className={`${
-                              actionColors[activity.action as keyof typeof actionColors]
-                            } text-white border-0`}
-                          >
-                            {activity.action}
-                          </Badge>
-                          <span className="text-muted-foreground">{activity.target}</span>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold">{log.user?.full_name || 'Unknown'}</span>
+                            <Badge variant="outline" className="capitalize">
+                              {log.action_type.replace('_', ' ')}
+                            </Badge>
+                            {log.task && (
+                              <span className="text-muted-foreground text-sm">{log.task.task_id}</span>
+                            )}
+                          </div>
+                          {log.task && (
+                            <div className="font-medium text-sm">{log.task.title}</div>
+                          )}
+                          {log.details && (
+                            <div className="text-sm text-muted-foreground">
+                              {JSON.stringify(log.details).substring(0, 100)}
+                            </div>
+                          )}
                         </div>
-                        <div className="font-medium text-sm">{activity.targetName}</div>
-                        <div className="text-sm text-muted-foreground">{activity.details}</div>
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                          {format(new Date(log.created_at), "MMM d, h:mm a")}
+                        </span>
                       </div>
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">
-                        {format(activity.timestamp, "MMM d, h:mm a")}
-                      </span>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))
+          ) : null}
         </div>
 
         {filteredActivities.length === 0 && (
