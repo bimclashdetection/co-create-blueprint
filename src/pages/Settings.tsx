@@ -348,7 +348,7 @@ const Settings = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="theme">Theme</Label>
-                  <Select value={theme} onValueChange={(value: any) => setTheme(value)}>
+                  <Select value={theme} onValueChange={setTheme}>
                     <SelectTrigger id="theme">
                       <SelectValue />
                     </SelectTrigger>
