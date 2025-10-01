@@ -174,7 +174,16 @@ const Activity = () => {
                           )}
                           {log.details && (
                             <div className="text-sm text-muted-foreground">
-                              {JSON.stringify(log.details).substring(0, 100)}
+                              {log.action_type === 'task_status_changed' && log.details.old_status && log.details.new_status ? (
+                                <>Changed status from <span className="font-medium capitalize">{log.details.old_status.replace('_', ' ')}</span> to <span className="font-medium capitalize">{log.details.new_status.replace('_', ' ')}</span></>
+                              ) : log.action_type === 'task_created' ? (
+                                <>Created with <span className="font-medium capitalize">{log.details.priority}</span> priority</>
+                              ) : (
+                                Object.entries(log.details)
+                                  .filter(([key]) => !['task_id'].includes(key))
+                                  .map(([key, value]) => `${key}: ${value}`)
+                                  .join(', ')
+                              )}
                             </div>
                           )}
                         </div>
