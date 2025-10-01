@@ -4,54 +4,76 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { CheckCircle2, Clock, AlertCircle, Download } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useMyTasks, useUpdateTask } from "@/hooks/useTasks";
+import { useExport } from "@/hooks/useExport";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 const MyTasks = () => {
-  const myTasks = [
-    {
-      id: "TT-001",
-      title: "Update user authentication flow",
-      assignee: { name: "John Doe", initials: "JD" },
-      status: "in-progress" as const,
-      priority: "high" as const,
-      dueDate: "Oct 5",
-      commentCount: 3,
-    },
-    {
-      id: "TT-005",
-      title: "Implement real-time notifications",
-      assignee: { name: "John Doe", initials: "JD" },
-      status: "in-progress" as const,
-      priority: "critical" as const,
-      dueDate: "Oct 3",
-      commentCount: 5,
-    },
-    {
-      id: "TT-008",
-      title: "Code review for PR #234",
-      assignee: { name: "John Doe", initials: "JD" },
-      status: "assigned" as const,
-      priority: "medium" as const,
-      dueDate: "Oct 10",
-      commentCount: 1,
-    },
-    {
-      id: "TT-011",
-      title: "Update documentation",
-      assignee: { name: "John Doe", initials: "JD" },
-      status: "completed" as const,
-      priority: "low" as const,
-      dueDate: "Sep 30",
-      commentCount: 2,
-    },
-  ];
+  const { user } = useAuth();
+  const { data: tasks, isLoading } = useMyTasks(user?.id || '');
+  const { exportTasksToCSV } = useExport();
+  const updateTask = useUpdateTask();
+  const { toast } = useToast();
 
-  const inProgressTasks = myTasks.filter((t) => t.status === "in-progress");
-  const notStartedTasks = myTasks.filter((t) => t.status === "assigned");
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <LoadingSpinner />
+        </div>
+      </Layout>
+    );
+  }
+
+  const myTasks = tasks || [];
+
+  const inProgressTasks = myTasks.filter((t) => t.status === "in_progress");
+  const notStartedTasks = myTasks.filter((t) => t.status === "not_started");
   const completedTasks = myTasks.filter((t) => t.status === "completed");
-  const overdueTasks = myTasks.filter((t) => t.status !== "completed" && new Date(t.dueDate) < new Date());
+  const overdueTasks = myTasks.filter((t) => {
+    if (t.status === "completed" || !t.due_date) return false;
+    return new Date(t.due_date) < new Date();
+  });
 
-  const completionRate = Math.round((completedTasks.length / myTasks.length) * 100);
+  const completionRate = myTasks.length > 0 
+    ? Math.round((completedTasks.length / myTasks.length) * 100)
+    : 0;
+
+  const handleMarkAllComplete = async () => {
+    const incompleteTasks = myTasks.filter(t => t.status !== 'completed');
+    
+    try {
+      await Promise.all(
+        incompleteTasks.map(task =>
+          updateTask.mutateAsync({
+            id: task.id,
+            updates: { 
+              status: 'completed',
+              completed_at: new Date().toISOString()
+            }
+          })
+        )
+      );
+      toast({
+        title: "Success",
+        description: `Marked ${incompleteTasks.length} tasks as complete.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update tasks.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportTasks = () => {
+    exportTasksToCSV(myTasks);
+  };
 
   return (
     <Layout>
@@ -121,14 +143,46 @@ const MyTasks = () => {
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-            {myTasks.map((task) => (
-              <TaskCard key={task.id} {...task} />
-            ))}
+            {myTasks.length > 0 ? (
+              myTasks.map((task) => (
+                <TaskCard 
+                  key={task.id}
+                  id={task.task_id}
+                  title={task.title}
+                  assignee={{
+                    name: task.assignee?.full_name || 'Unassigned',
+                    initials: task.assignee?.full_name?.substring(0, 2).toUpperCase() || 'NA'
+                  }}
+                  status={task.status}
+                  priority={task.priority}
+                  dueDate={task.due_date ? format(new Date(task.due_date), 'MMM dd') : ''}
+                  commentCount={0}
+                />
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No tasks assigned to you</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="in-progress" className="space-y-4">
             {inProgressTasks.length > 0 ? (
-              inProgressTasks.map((task) => <TaskCard key={task.id} {...task} />)
+              inProgressTasks.map((task) => (
+                <TaskCard 
+                  key={task.id}
+                  id={task.task_id}
+                  title={task.title}
+                  assignee={{
+                    name: task.assignee?.full_name || 'Unassigned',
+                    initials: task.assignee?.full_name?.substring(0, 2).toUpperCase() || 'NA'
+                  }}
+                  status={task.status}
+                  priority={task.priority}
+                  dueDate={task.due_date ? format(new Date(task.due_date), 'MMM dd') : ''}
+                  commentCount={0}
+                />
+              ))
             ) : (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No tasks in progress</p>
@@ -138,7 +192,21 @@ const MyTasks = () => {
 
           <TabsContent value="assigned" className="space-y-4">
             {notStartedTasks.length > 0 ? (
-              notStartedTasks.map((task) => <TaskCard key={task.id} {...task} />)
+              notStartedTasks.map((task) => (
+                <TaskCard 
+                  key={task.id}
+                  id={task.task_id}
+                  title={task.title}
+                  assignee={{
+                    name: task.assignee?.full_name || 'Unassigned',
+                    initials: task.assignee?.full_name?.substring(0, 2).toUpperCase() || 'NA'
+                  }}
+                  status={task.status}
+                  priority={task.priority}
+                  dueDate={task.due_date ? format(new Date(task.due_date), 'MMM dd') : ''}
+                  commentCount={0}
+                />
+              ))
             ) : (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No tasks waiting to start</p>
@@ -148,7 +216,21 @@ const MyTasks = () => {
 
           <TabsContent value="completed" className="space-y-4">
             {completedTasks.length > 0 ? (
-              completedTasks.map((task) => <TaskCard key={task.id} {...task} />)
+              completedTasks.map((task) => (
+                <TaskCard 
+                  key={task.id}
+                  id={task.task_id}
+                  title={task.title}
+                  assignee={{
+                    name: task.assignee?.full_name || 'Unassigned',
+                    initials: task.assignee?.full_name?.substring(0, 2).toUpperCase() || 'NA'
+                  }}
+                  status={task.status}
+                  priority={task.priority}
+                  dueDate={task.due_date ? format(new Date(task.due_date), 'MMM dd') : ''}
+                  commentCount={0}
+                />
+              ))
             ) : (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No completed tasks</p>
@@ -157,10 +239,18 @@ const MyTasks = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Quick Actions */}
-        <div className="flex gap-3">
-          <Button>Mark All as Complete</Button>
-          <Button variant="outline">Export My Tasks</Button>
+        {/* Quick Actions - Available to Team Members */}
+        <div className="flex gap-3 flex-wrap">
+          <Button 
+            onClick={handleMarkAllComplete}
+            disabled={myTasks.length === 0 || completedTasks.length === myTasks.length}
+          >
+            Mark All as Complete
+          </Button>
+          <Button variant="outline" onClick={handleExportTasks}>
+            <Download className="mr-2 h-4 w-4" />
+            Export My Tasks
+          </Button>
         </div>
       </div>
     </Layout>

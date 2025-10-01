@@ -9,6 +9,8 @@ import {
   Hash,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCurrentUserRole } from "@/hooks/useProfiles";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -27,6 +29,10 @@ const menuItems = [
 
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const location = useLocation();
+  const { user } = useAuth();
+  const { data: userRole } = useCurrentUserRole(user?.id);
+  
+  const isManager = userRole === 'manager';
 
   return (
     <>
@@ -49,6 +55,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
+            
+            // Hide manager-only items from non-managers
+            if (item.managerOnly && !isManager) {
+              return null;
+            }
 
             return (
               <Link
